@@ -13,18 +13,13 @@ def callback(raw_msg):
 
 
 #Initialize node
-rospy.init_node("model_car_yaw_node_test_123")
+rospy.init_node("model_car_yaw_node_test_12345")
 
 #run subscriber
 rospy.Subscriber("/yaw", Float32, callback)
-publisher = rospy.Publisher("/assignment1_publisher_subscriber123", String, queue_size=10)
+publisher = rospy.Publisher("/assignment1_publisher_subscriber12345", String, queue_size=10)
 
 #idle
-
-#while 1==1:
-#	msg = "hallo welt!"	
-#	publisher.publish(msg)
-
 rospy.spin()
 
 

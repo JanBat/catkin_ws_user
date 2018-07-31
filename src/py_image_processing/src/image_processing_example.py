@@ -5,6 +5,10 @@ import sys
 from blobs import identify_blobs       #to use
 from ransac import ransac
 from cv_extensions import print_lines_onto_cv
+from cv_extensions import make_top_half_all_black
+from cv_extensions import remove_all_non_grayscale
+from cv_extensions import threshold
+
 import rospy
 import cv2
 import numpy as np
@@ -14,6 +18,8 @@ from geometry_msgs.msg import Point
 from geometry_msgs.msg import Quaternion
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
+
+
 
 #import matplotlib
 #matplotlib.use('Agg')
@@ -38,6 +44,19 @@ class image_converter:
     except CvBridgeError as e:
       print(e)
 
+    #let's start by ignoring the entire top half =) #bandaidfixes
+    cv_image = cv2.resize(cv_image, (0,0), fx=0.2, fy=0.2)     
+    cv_image = make_top_half_all_black(cv_image)
+    cv_image = threshold(cv_image)
+    
+
+    #debug:
+#    try:
+#      self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
+#    except CvBridgeError as e:
+#      print(e)
+    ####end debug
+
 
     #make it gray
     gray=cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
@@ -47,81 +66,12 @@ class image_converter:
     bi_gray_min = 230
     ret,thresh1=cv2.threshold(gray, bi_gray_min, bi_gray_max, cv2.THRESH_BINARY);
 
-    #gauss
-#    MAX_KERNEL_LENGTH = 2;
-#    i= 5
-#    dst=cv2.GaussianBlur(cv_image,(5,5),0,0)
-
-    #edge
-#    dx = 1;
-#    dy = 1;
-#    ksize = 3; #1,3,5,7
-#    scale = 1
-#    delta = 0
-#    edge_img=cv2.Sobel(thresh1, cv2.CV_8UC1, dx, dy, ksize, scale, delta, cv2.BORDER_DEFAULT)
-
-    #bi_rgb
-#    r_max = 244;
-#    r_min = 0;
-#    g_max = 255;
-#    g_min = 0;
-#    b_max = 255;
-#    b_min = 0;
-#    b,g,r = cv2.split(cv_image)
-#    for j in range(cv_image.shape[0]):
-#      for i in range(cv_image.shape[1]):
-#        if (r[j,i] >= r_min and r[j,i] <= r_max):
-#          if (g[j,i] >= g_min and g[j,i] <= g_max):
-#            if (b[j,i] >= b_min and b[j,i] <= b_max):
-#              r[j,i]=0
-#              g[j,i]=0
-#              b[j,i]=0
-#            else:
-#              r[j,i]=255
-#              g[j,i]=255
-#              b[j,i]=255
-#    bi_rgb = cv2.merge((b,g,r))
-
-    #bi_hsv
-    h_max = 255;
-    h_min = 0;
-    s_max = 255;
-    s_min= 0;
-    v_max = 252;
-    v_min = 0;
-    hsv=cv2.cvtColor(cv_image,cv2.COLOR_BGR2HSV);
-    h,s,v = cv2.split(hsv)
-
- #   for j in xrange(hsv.shape[0]):
- #     for i in xrange(hsv.shape[1]):
- #       if  (v[j,i]>= v_min and v[j,i]<= v_max and s[j,i]>= s_min and s[j,i]<= s_max and h[j,i]>= h_min and h[j,i]<= h_max):
- #         h[j,i]=0
- #         s[j,i]=0
- #         v[j,i]=0
- #       else:
- #         h[j,i]=255
- #         s[j,i]=255
- #         v[j,i]=255
-
-#    bi_hsv = cv2.merge((h,s,v))
-
-    # titles = ['Original Image', 'GRAY','BINARY','GAUSS','EDGE','BI_RGB','BI_HSV']
-    # images = [cv_image, gray, thresh1,dst,edge_img,bi_rgb,bi_hsv]
-    #
-    # for i in xrange(7):
-    #   plt.subplot(2,4,i+1),plt.imshow(images[i],'gray')
-    #   plt.title(titles[i])
-    #   plt.xticks([]),plt.yticks([])
-    #
-    # plt.show()
-    # print("Done")
-    
 
     # identify blobs!
 
     rgb_for_blob_identification = cv2.cvtColor(thresh1, cv2.COLOR_GRAY2RGB)
 
-    #now, only use bottom half of picture: (TODO)(HACK)
+
     
     color_blobs = identify_blobs(rgb_for_blob_identification)
 
@@ -142,6 +92,7 @@ class image_converter:
     print_lines_onto_cv(rrr, image)
     ###copypaste ende
 
+#commented during debug:
     try:
       self.image_pub.publish(self.bridge.cv2_to_imgmsg(image, "bgr8"))
     except CvBridgeError as e:

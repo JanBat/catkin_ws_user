@@ -131,7 +131,7 @@ def identify_blobs(data):
         infect_iterative(i,j)	
 	  
   #shave blobs
-  #HAC: the "4" below assumes that we the 4 biggest blobs on the input picture are made up of 
+  #HAC: the "4"(10) below assumes that we the 4 biggest blobs on the input picture are made up of 
   #4 lines on the street (left, right, 2 small ones in the middle
   while len(bloblist)>10:     #make this more interactive
       #delete smallest blob

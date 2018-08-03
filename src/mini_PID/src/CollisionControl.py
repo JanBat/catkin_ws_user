@@ -3,6 +3,8 @@ import roslib
 # roslib.load_manifest('my_package')
 import sys
 
+import time
+
 import rospy
 import cv2
 import numpy as np
@@ -34,7 +36,13 @@ class CollisionControl:
   
 
   def callback(self,data):
-    
+ 
+    #test
+    millis = int(round(time.time() * 1000))
+    print millis
+
+
+
     #print ("#0:")
     #print (data)
     try:
@@ -43,7 +51,7 @@ class CollisionControl:
       print(e) 
     
     small_image = cv2.resize(depth_image, (0,0), fx=0.02, fy=0.02)    
-
+    print(small_image)
 
 #    print ("##################################################")
 #    print ("##################################################")
@@ -88,15 +96,20 @@ class CollisionControl:
     #print("DEBUG1: ",pixels_closer_than_600)
     if close_pixels >= minimum_amount_to_react: 
 #   switch lane. only do this once every 2 seconds (?)  (super simple naive implementation)   
-
-       if self.lane == 1:
-         self.lane_pub.publish(2) 
-         self.lane = 2
-         rospy.sleep(2000)
-       else:
-         self.lane_pub.publish(1) 
-         self.lane = 1
-         rospy.sleep(2000)
+       print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+       print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+       print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+       print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+       print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+#       if self.lane == 1:
+#         self.lane_pub.publish(2) 
+#         self.lane = 2
+#         #rospy.sleep(2000)
+#       else:
+#         self.lane_pub.publish(1) 
+#         self.lane = 1
+#
+         #rospy.sleep(2000)
 
 def main(args):
   rospy.init_node('CollisionControl', anonymous=True)

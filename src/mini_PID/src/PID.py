@@ -5,6 +5,7 @@ import roslib
 import sys
 import tf
 import rospy
+import time
 
 import numpy as np
 from std_msgs.msg import String
@@ -26,6 +27,57 @@ from v2a import vector2angle
 
 from matplotlib import pyplot as plt
 
+#initialize lastTime
+
+lastTime = int(round(time.time() * 1000))
+errsum = 0
+lasterr = 0
+kp = 170
+ki = 0.000000001
+kd = 160
+
+
+def PID_correction(error):
+        now = int(round(time.time() * 1000))
+        timechange = now - lastTime
+        
+        global errsum
+        global lasterr
+        global lasttime    
+        
+
+        errsum += error*timechange
+        derr = (error - lasterr) / timechange
+
+        lasterr = error
+        lasttime = now
+
+
+
+
+        #error: current direction vs desired direction
+
+        #errsum: in which direction do we overshoot more?
+  
+        #derr: how much did error change since last turn?
+
+        output = kp* error + ki * errsum + kd *derr
+
+        #to make it fit the 0..180 value field of the actual steering:
+        output +=90   #to make 90 the middle value
+        if output > 180:
+          output = 180
+        elif output < 0:
+          output = 0
+
+        return output
+ 
+    
+
+
+
+ 
+
 class PID:
     
     def __init__(self):
@@ -33,19 +85,58 @@ class PID:
           "JaRen/stop_start",
           Int16,
           queue_size=100)
-      self.pub_speed = rospy.Publisher("JaRen/speed", Int16, queue_size=100)
+      self.pub_speed = rospy.Publisher("JaRen/speed", Int16, queue_size=1)
       self.pub_steering = rospy.Publisher(
           "JaRen/steering",
           UInt8,
-          queue_size=100)
+          queue_size=1)
       self.sub_odom = rospy.Subscriber(
-          "localization/odom/3", Odometry, self.callback, queue_size=10)
+          "localization/odom/3", Odometry, self.callback, queue_size=1)
       self.sub_matrix = rospy.Subscriber(
-          "JaRen/matrix", Int16, self.lanechange, queue_size=10)
+          "JaRen/RC/lane", Int16, self.lanechange, queue_size=1)
+
+      self.sub_kp = rospy.Subscriber(
+          "JaRen/RC/kp", Float32, self.kpcallback, queue_size=1)
+      self.sub_ki = rospy.Subscriber(
+          "JaRen/RC/ki", Float32, self.kicallback, queue_size=1)
+      self.sub_kd = rospy.Subscriber(
+          "JaRen/RC/kd", Float32, self.kdcallback, queue_size=1)
+
+
+
+      #self.RCspeed = rospy.Subscriber("JaRen/RC/
+      #    "
+
       self.lane1 = np.load("matrix100cm_lane1.npy") 
       self.lane2 = np.load("matrix100cm_lane2.npy")
       self.dynamics = self.lane1 #initially, use lane1
-  
+      lastTime = int(round(time.time() * 1000))
+
+     
+
+
+    def kpcallback(self, data):
+      global kp
+      global ki
+      global kd  
+      kp = data.data
+      print ("kp, ki, kd:", kp, ki, kd)
+
+    def kicallback(self, data):
+      global kp
+      global ki
+      global kd
+      ki = data.data
+      print ("kp, ki, kd:", kp, ki, kd)
+
+    def kdcallback(self, data):
+      global kp
+      global ki
+      global kd
+      kd = data.data
+      print ("kp, ki, kd:", kp, ki, kd)
+ 
+
     def lanechange(self, data):
       print (data)
       if data.data == 1:
@@ -54,7 +145,10 @@ class PID:
       elif data.data == 2:
         self.dynamics = self.lane2
         print ("Switching to Lane 2")
-  
+    
+
+
+    
     def callback(self,data):
 
       #print("WHEEEEEE")
@@ -101,8 +195,17 @@ class PID:
       #Car position
     
       #Vector for car position
-      map_coord_x = self.dynamics[x*10][y*10][0]
-      map_coord_y = self.dynamics[x*10][y*10][1]
+      xx =int(x*10)
+      yy =int(y*10)
+      
+      if xx<self.dynamics.shape[0] and yy<self.dynamics.shape[1]:
+
+      
+        map_coord_x = self.dynamics[xx][yy][0]
+        map_coord_y = self.dynamics[xx][yy][1]
+      else:
+        map_coord_x = self.dynamics[0][0][0]
+        map_coord_y = self.dynamics[0][0][1]
       #print("map_coord_x/y:", map_coord_x, map_coord_y)
 
       #Calclating angle of car relativ to vector 
@@ -131,22 +234,34 @@ class PID:
       #directionAngle is now -PI......+PI .. we want 180.....0 instead (?) 
       #not proportionally (TODO)
 
-      directionAngle *= 200 # 280 #was 130 too    #was 280
-      directionAngle += 90
-      #make it way bigger and afterwards clamp: (thats why *280)
-      dir = directionAngle
-      if dir > 180:
-        dir = 180
-      elif dir < 0:
-        dir = 0  
-      #(directionAngle 0 is mapped to steering 90)
-      #-PI is mapped to roughly 87 (good enough) (+PI conversely)
+#############pseudo-PID below
 
+#      directionAngle *= kp # 280 #was 130 too    #was 280
+#      directionAngle += 90
+#      #make it way bigger and afterwards clamp: (thats why *280)
+#      steering = directionAngle
+#      if steering > 180:
+#        steering = 180
+#      elif steering < 0:
+#        steering = 0  
+#      #(directionAngle 0 is mapped to steering 90)
+#      #-PI is mapped to roughly 87 (good enough) (+PI conversely)
 
+#############pseudo-PID above
+ 
+#"directionAngle" is the desired change of angle. (at 0, don't steer)
+
+########"proper" PID:
+#      print("####################")
+#      print (directionAngle)
+      steering =PID_correction(directionAngle)
+#      print(steering)
+#      print("####################")
+##################
       
       #print("yaw:", yaw, "steering:", dir)
       #print("#####")
-      self.pub_steering.publish(int(dir))    
+      self.pub_steering.publish(int(steering))    
       #self.pub_steering.publish(90)
 #      self.pub_steering.publish(90)   #HARD LEFT
 #      self.pub_steering.publish(0) #HARD RIGHT
@@ -155,7 +270,12 @@ class PID:
       #self.pub_speed.publish(270)
       #rospy.sleep(1)
 
-  
+      #millis = int(round(time.time() * 1000))
+      #print millis
+
+
+#somewhat copypasty (simple PID):
+
 
 def main(args):
   rospy.init_node('mini_PID', anonymous=True)

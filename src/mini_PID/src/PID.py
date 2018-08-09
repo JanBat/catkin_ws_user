@@ -31,6 +31,8 @@ from matplotlib import pyplot as plt
 
 lastTime = int(round(time.time() * 1000))
 errsum = 0
+err_ring_puffer = [0,0,0,0,0,0,0,0,0,0]
+err_ring_sum = 0
 lasterr = 0
 kp = 170
 ki = 0.000000001
@@ -41,12 +43,18 @@ def PID_correction(error):
         now = int(round(time.time() * 1000))
         timechange = now - lastTime
         
-        global errsum
+        #global errsum
         global lasterr
         global lasttime    
-        
+        global err_ring_puffer
+        global err_ring_sum
 
-        errsum += error*timechange
+        #errsum += error*timechange
+        err_ring_sum -= err_ring_puffer[0]
+        del err_ring_puffer[0]
+        err_ring_puffer.append(error)
+        err_ring_sum += error
+        #print (err_ring_puffer, "sum:", err_ring_sum)
         derr = (error - lasterr) / timechange
 
         lasterr = error
@@ -61,7 +69,7 @@ def PID_correction(error):
   
         #derr: how much did error change since last turn?
 
-        output = kp* error + ki * errsum + kd *derr
+        output = kp* error + ki * err_ring_sum + kd *derr
 
         #to make it fit the 0..180 value field of the actual steering:
         output +=90   #to make 90 the middle value

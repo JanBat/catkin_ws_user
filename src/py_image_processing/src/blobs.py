@@ -44,7 +44,7 @@ colorcode = [
 
 #reads a black and white file - entirely white pixels form the blobs
 #return a picture (output[0]) and a list of blobs, each with coordinates (output[1])
-def identify_blobs(data):
+def identify_blobs(data, max_blob_count):
   #...
   
       
@@ -133,7 +133,7 @@ def identify_blobs(data):
   #shave blobs
   #HAC: the "4"(10) below assumes that we the 4 biggest blobs on the input picture are made up of 
   #4 lines on the street (left, right, 2 small ones in the middle
-  while len(bloblist)>10:     #make this more interactive
+  while len(bloblist)>max_blob_count:     #make this more interactive
       #delete smallest blob
       smallest_blob = 0
       for i in range(len(bloblist)):
@@ -165,10 +165,12 @@ def identify_blobs(data):
   #output has two components:
   #[0]: cv2image with colored-in blobs
   #[1]: list of blobs, each a list of coordinates
+  #[2]: list of middle poitns of each blob
 
   output = []
   output.append(cv2.merge((b,g,r)))
   output.append(bloblist)
+  output.append(blob_middlepoint_list)
   return output
 
 #main part:

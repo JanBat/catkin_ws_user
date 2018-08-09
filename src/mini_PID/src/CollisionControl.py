@@ -33,13 +33,15 @@ class CollisionControl:
     self.bridge = CvBridge()
     self.image_sub = rospy.Subscriber("/JaRen/app/camera/depth/image_raw",Image,self.callback, queue_size=1)
     self.lane=1
-  
+    self.lastcollision = int(round(time.time() * 1000))
 
   def callback(self,data):
- 
+   #timediff = int(round(time.time() * 1000))-self.lastcollision
+   #if timediff > 2000:
+    
     #test
-    millis = int(round(time.time() * 1000))
-    print millis
+    #millis = int(round(time.time() * 1000))
+    #print millis
 
 
 
@@ -53,63 +55,53 @@ class CollisionControl:
     small_image = cv2.resize(depth_image, (0,0), fx=0.02, fy=0.02)    
     print(small_image)
 
-#    print ("##################################################")
-#    print ("##################################################")
-#    print ("##################################################")
-#    print (small_image)
-##    print ("##################################################")
-#    print ("##################################################")
-#    print ("##################################################")
-    #print("#1:")
-    #print(depth_image)
-    #depth_array = np.array(depth_image, dtype=np.uint16)
-    #print("#2:")
-    #print(depth_array)
-    #print("#2.plot:")
-    #print(plt.plot(depth_array))
-    #image_np = cv2.imdecode(depth_array, cv2.IMREAD_COLOR)
-    #print("#3:")
-    #print(image_np)	
-
-    #...xxx...
-    #...xxx...
-    #.........
 
 
 
     total_x = small_image.shape[0]
     total_y = small_image.shape[1]
     #just check the innermost 1/9 of the image)
-    #x = total_x    #
-    #y = total_y    #
+    x = total_x/3-1    #
+    y = total_y/3-1   #
     close_pixels = 0
-    pixel_proximity = 450
-    minimum_amount_to_react = 3
-    for xx in range(total_x):       #
-      #x +=1
-      #y = total_y   #
-      for yy in range(total_y): #
-        #y +=1
-        value = small_image[xx,yy]
+    pixel_proximity = 550
+    minimum_amount_to_react = 5
+    for xx in range(total_x/3):       #
+      x +=1
+      y = total_y/3-1   #
+      for yy in range(total_y/3): #
+        y +=1
+        value = small_image[x,y]
         if value != 0 and value < pixel_proximity:
           close_pixels +=1
     #print("DEBUG1: ",pixels_closer_than_600)
     if close_pixels >= minimum_amount_to_react: 
-#   switch lane. only do this once every 2 seconds (?)  (super simple naive implementation)   
+       #to just stop:
+       #self.speed_pub.publish(0)
+
+    
+       #to switch lane. only do this once every 2 seconds (?)  (super simple naive implementation)   
+       self.lastcollision = int(round(time.time() * 1000))
        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-#       if self.lane == 1:
-#         self.lane_pub.publish(2) 
-#         self.lane = 2
-#         #rospy.sleep(2000)
-#       else:
-#         self.lane_pub.publish(1) 
-#         self.lane = 1
-#
-         #rospy.sleep(2000)
+       if self.lane == 1:
+         self.lane_pub.publish(2) 
+         self.lane = 2
+         #rospy.sleep(2)
+       else:
+         self.lane_pub.publish(1) 
+         self.lane = 1
+         #rospy.sleep(2)
+    else: 
+
+       print("...................................................")
+       print("...................................................")
+       print("...................................................")
+       print("...................................................")
+       print("...................................................")
 
 def main(args):
   rospy.init_node('CollisionControl', anonymous=True)

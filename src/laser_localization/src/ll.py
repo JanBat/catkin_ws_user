@@ -13,11 +13,13 @@
 
 #!/usr/bin/env python
 import roslib
+import tf
 # roslib.load_manifest('my_package')
 import sys
 import math
 import rospy
 import cv2
+import ast
 import numpy as np
 from std_msgs.msg import String
 from geometry_msgs.msg import Pose
@@ -29,6 +31,7 @@ from sensor_msgs.msg import Image
 from sensor_msgs.msg import LaserScan
 from cv_bridge import CvBridge, CvBridgeError
 from nav_msgs.msg import Odometry
+#from laser_localization.msg import Foo
 
 #####Hilfsfunktionen :
 
@@ -91,7 +94,7 @@ def get_laser_space_coordinate_from_angle_and_distance(angle, distance, self):
 def get_laser_space_coordinate_from_angle_and_distance_modified_by_odom(angle, distance, self):
    
    #bereinigen um eigenwinkel
-   angle = angle - self.angle
+   angle =angle+ self.angle
    PI = 3.1415926
 
    while angle > PI:
@@ -101,11 +104,11 @@ def get_laser_space_coordinate_from_angle_and_distance_modified_by_odom(angle, d
    x = math.cos(angle)*distance
    y = -math.sin(angle)*distance
    
-   x += self.position[0]
-   y += self.position[1]
+   x -= self.position[0]
+   y -= self.position[1]
    #bereinigen um eigenposition
   
-   return [x,y]
+   return [x,y]   #???x/y???
 
 def publish_coords_as_pic(coords, self):
     #let's try a scale of 30:
@@ -117,7 +120,10 @@ def publish_coords_as_pic(coords, self):
       print(e)    
 
 def publish_coords_as_array(coords, self):
-    self.array_pub.publish(coords)
+    #print("DEBUG: coords:", coords)
+    #print("DEBUG: coords as string:", str(coords))
+    #print("DEBUG: coords as string evaluated:", ast.literal_eval(str(coords)))
+    self.array_pub.publish(str(coords))
 
 
 ######################
@@ -130,7 +136,7 @@ class laser_localization:
   
   def __init__(self):
     self.image_pub = rospy.Publisher("/image_processing/bin_img",Image, queue_size=1)
-    self.array_pub = rospy.Publisher("JaRen/LidarArray", Float32, queue_size=1)
+    self.array_pub = rospy.Publisher("JaRen/LidarArray", String, queue_size=1)
     self.panic_pub = rospy.Publisher("JaRen/LidarCollisionDetection", Int16, queue_size=1)
     self.bridge = CvBridge()
     self.lidar_sub = rospy.Subscriber("/JaRen/scan",LaserScan,self.lidar_callback, queue_size=1)
@@ -142,7 +148,7 @@ class laser_localization:
     o = data.pose.pose.orientation
     euler = tf.transformations.euler_from_quaternion([o.x, o.y, o.z, o.w])
     self.position = [p.x, p.y]
-    self.angle = euler
+    self.angle = euler[2]
   def lidar_callback(self,data):
 
     #"proper":    

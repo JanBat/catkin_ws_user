@@ -9,6 +9,7 @@ import rospy
 import cv2
 import numpy as np
 import os
+import ast
 from std_msgs.msg import String
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Point
@@ -105,7 +106,8 @@ def print_map(self):
   for coord in self.laser_array:
     x = int(coord[0]*10)
     y = int(coord[1]*10)
-    canvas[x][y] = "#"
+    if x > 0 and y > 0 and x < len(canvas) and y < len(canvas[0]):
+      canvas[x][y] = "#"
      
 
 
@@ -135,7 +137,7 @@ class mini_map:
     #self.image_pub = rospy.Publisher("/image_processing/bin_img",Image, queue_size=1)
     #self.bridge = CvBridge()
     self.odom_sub = rospy.Subscriber("/localization/odom/3", Odometry, self.odom_callback, queue_size=1)
-    self.lidar_sub = rospy.Subscriber("/JaRen/LidarArray", Float32, self.lidar_callback, queue_size=1)
+    self.lidar_sub = rospy.Subscriber("/JaRen/LidarArray", String, self.lidar_callback, queue_size=1)
     self.lane1 = []
     self.lane2 = []
     self.laser_array = []
@@ -145,7 +147,8 @@ class mini_map:
   
 
   def lidar_callback(self,data):
-    self.laser_array = data
+    #print(data.data)
+    self.laser_array = ast.literal_eval(data.data)    #security issue... :>  but the message needs sending
 
   def odom_callback(self,data):
     #print ("odom callback!!!")

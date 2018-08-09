@@ -18,7 +18,7 @@ from std_msgs.msg import Int16
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import LaserScan
 from cv_bridge import CvBridge, CvBridgeError
-
+from nav_msgs.msg import Odometry
 ####Specs.:
 
 #build map from .txt files (lanes etc.)
@@ -103,11 +103,14 @@ def print_map(self):
 
   #add laser information:
   for coord in self.laser_array:
+    x = int(coord[0]*10)
+    y = int(coord[1]*10)
+    canvas[x][y] = "#"
      
 
 
   #add car position:
-  canvas[self.car_position[0]][self.car_position[1]] = 'O'
+  canvas[int(self.car_position[0])][int(self.car_position[1])] = 'O'
 
 
 
@@ -131,24 +134,30 @@ class mini_map:
   def __init__(self):
     #self.image_pub = rospy.Publisher("/image_processing/bin_img",Image, queue_size=1)
     #self.bridge = CvBridge()
-    self.odom_sub = rospy.Subscriber("/localization/odom/3",LaserScan,self.odom_callback, queue_size=1)
+    self.odom_sub = rospy.Subscriber("/localization/odom/3", Odometry, self.odom_callback, queue_size=1)
     self.lidar_sub = rospy.Subscriber("/JaRen/LidarArray", Float32, self.lidar_callback, queue_size=1)
     self.lane1 = []
     self.lane2 = []
     self.laser_array = []
     self.base_map = build_base_map(self)
     self.car_position = [20,20]
-    print_map(self)
+    #print_map(self)
   
 
   def lidar_callback(self,data):
     self.laser_array = data
-    
+
+  def odom_callback(self,data):
+    #print ("odom callback!!!")
+    self.car_position = [data.pose.pose.position.x*10, data.pose.pose.position.y*10]
+    print_map(self)    
     
 def main(args):
   rospy.init_node('mini_map', anonymous=True)
   mm = mini_map()
-  
+  #while (1):
+  #  print_map(mm)
+  #  rospy.sleep(1)
   try:
     rospy.spin()
   except KeyboardInterrupt:

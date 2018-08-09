@@ -28,7 +28,7 @@ from std_msgs.msg import Int16
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import LaserScan
 from cv_bridge import CvBridge, CvBridgeError
-
+from nav_msgs.msg import Odometry
 
 #####Hilfsfunktionen :
 
@@ -60,7 +60,7 @@ def coord_to_picture_space(coord, img_height, img_width, scale):
     
 
 
-def get_laser_space_coordinates_from_full_scan(full_scan):
+def get_laser_space_coordinates_from_full_scan(full_scan, self):
     angle_min = full_scan.angle_min
     angle_max = full_scan.angle_max
     angle_increment = full_scan.angle_increment
@@ -72,7 +72,8 @@ def get_laser_space_coordinates_from_full_scan(full_scan):
     i = 0
     while (iteration_angle < angle_max):
       if not np.isinf(full_scan.ranges[i]):
-          coord = get_laser_space_coordinate_from_angle_and_distance(iteration_angle, full_scan.ranges[i])
+          #coord = get_laser_space_coordinate_from_angle_and_distance(iteration_angle, full_scan.ranges[i], self)
+          coord = get_laser_space_coordinate_from_angle_and_distance_modified_by_odom(iteration_angle, full_scan.ranges[i], self)
           output_array.append(coord)
       #...do something smart with coord, e.g. save it or plot it on a map
       
@@ -80,16 +81,36 @@ def get_laser_space_coordinates_from_full_scan(full_scan):
       iteration_angle +=angle_increment
     return (output_array)
 
-def get_laser_space_coordinate_from_angle_and_distance(angle, distance):
+def get_laser_space_coordinate_from_angle_and_distance(angle, distance, self):
     #a +/- error snuck in somewhere :> (TODO)  (laser rotates clockwise but starts at -PI)
     x = math.cos(angle)*distance
     y = -math.sin(angle)*distance
     return [x,y]
 
+#returns coordinates that conform with the map
+def get_laser_space_coordinate_from_angle_and_distance_modified_by_odom(angle, distance, self):
+   
+   #bereinigen um eigenwinkel
+   angle = angle - self.angle
+   PI = 3.1415926
+
+   while angle > PI:
+     angle = angle - 2*PI
+   while angle < -PI:
+     angle = angle + 2*PI
+   x = math.cos(angle)*distance
+   y = -math.sin(angle)*distance
+   
+   x += self.position[0]
+   y += self.position[1]
+   #bereinigen um eigenposition
+  
+   return [x,y]
 
 def publish_coords_as_pic(coords, self):
     #let's try a scale of 30:
     pic = make_cv_picture_from_laser_space_coordinates(coords, 100, 100, 20)
+    
     try:
       self.image_pub.publish(self.bridge.cv2_to_imgmsg(pic, "bgr8"))
     except CvBridgeError as e:
@@ -113,17 +134,23 @@ class laser_localization:
     self.panic_pub = rospy.Publisher("JaRen/LidarCollisionDetection", Int16, queue_size=1)
     self.bridge = CvBridge()
     self.lidar_sub = rospy.Subscriber("/JaRen/scan",LaserScan,self.lidar_callback, queue_size=1)
-
-  
-
+    self.odom_sub = rospy.Subscriber("/localization/odom/3", Odometry, self.odom_callback, queue_size=1)
+    self.angle = 0
+    self.position = [0,0]
+  def odom_callback(self, data):
+    p = data.pose.pose.position
+    o = data.pose.pose.orientation
+    euler = tf.transformations.euler_from_quaternion([o.x, o.y, o.z, o.w])
+    self.position = [p.x, p.y]
+    self.angle = euler
   def lidar_callback(self,data):
 
     #"proper":    
-    coords = get_laser_space_coordinates_from_full_scan(data)
+    coords = get_laser_space_coordinates_from_full_scan(data, self)
 
 
     publish_coords_as_array(coords, self)
-    #publish_coords_as_pic(coords, self)
+    publish_coords_as_pic(coords, self)
 
     
     #makeshift collision detection:

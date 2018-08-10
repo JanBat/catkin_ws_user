@@ -81,24 +81,24 @@ def build_base_map(self):
 def print_map(self):
   #canvas:
   canvas = []
-  for x in range(60):
+  for x in range(40):
     column = []
     canvas.append(column)
-    for y in range(40):
+    for y in range(60):
       cell = " "
       column.append(cell)
 
 
   #add lane information:
   for coord in self.lane1:
-    x = int(coord[0]*10)
-    y = int(coord[1]*10)
+    x = int(coord[1]*10)
+    y = int(coord[0]*10)
     canvas[x][y] = "1"
 
 
   for coord in self.lane2:
-    x = int(coord[0]*10)
-    y = int(coord[1]*10)
+    x = int(coord[1]*10)
+    y = int(coord[0]*10)
     canvas[x][y] = "2"
 
 
@@ -112,7 +112,7 @@ def print_map(self):
 
 
   #add car position:
-  canvas[int(self.car_position[0])][int(self.car_position[1])] = 'O'
+  canvas[int(self.car_position[1])][int(self.car_position[0])] = 'O'
 
 
 

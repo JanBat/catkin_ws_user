@@ -94,18 +94,19 @@ def get_laser_space_coordinate_from_angle_and_distance(angle, distance, self):
 def get_laser_space_coordinate_from_angle_and_distance_modified_by_odom(angle, distance, self):
    
    #bereinigen um eigenwinkel
-   angle =angle+ self.angle
+   #print(angle, self.angle)
+   angle =angle + self.angle
    PI = 3.1415926
 
    while angle > PI:
      angle = angle - 2*PI
    while angle < -PI:
      angle = angle + 2*PI
-   x = math.cos(angle)*distance
-   y = -math.sin(angle)*distance
-   
-   x -= self.position[0]
-   y -= self.position[1]
+   x = -math.sin(angle)*distance
+   y = -math.cos(angle)*distance
+      
+   x += self.position[0]
+   y += self.position[1]
    #bereinigen um eigenposition
   
    return [x,y]   #???x/y???
@@ -148,6 +149,7 @@ class laser_localization:
     o = data.pose.pose.orientation
     euler = tf.transformations.euler_from_quaternion([o.x, o.y, o.z, o.w])
     self.position = [p.x, p.y]
+    print(euler[2])
     self.angle = euler[2]
   def lidar_callback(self,data):
 
@@ -156,7 +158,7 @@ class laser_localization:
 
 
     publish_coords_as_array(coords, self)
-    publish_coords_as_pic(coords, self)
+    #publish_coords_as_pic(coords, self)
 
     
     #makeshift collision detection:

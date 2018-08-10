@@ -115,8 +115,8 @@ class PID:
       #self.RCspeed = rospy.Subscriber("JaRen/RC/
       #    "
 
-      self.lane1 = np.load("matrix100cm_lane1.npy") 
-      self.lane2 = np.load("matrix100cm_lane2.npy")
+      self.lane1 = np.load("LOAD_AS_LANE_1.npy") 
+      self.lane2 = np.load("LOAD_AS_LANE_2.npy")
       self.dynamics = self.lane1 #initially, use lane1
       lastTime = int(round(time.time() * 1000))
 
